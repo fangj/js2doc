@@ -1,5 +1,53 @@
 <html>
-    <script src="build/docxtemplater.min.js"></script>
+    <body>
+    <a href="#" onclick="javascript:save()">save</a>
+        <img src='img/scat.jpg' id="cat"/>
+        <canvas id="canvas"/>
+        <script>
+function dataURItoBlob(dataURI) {
+    // convert base64/URLEncoded data component to raw binary data held in a string
+    var byteString;
+    if (dataURI.split(',')[0].indexOf('base64') >= 0)
+        byteString = atob(dataURI.split(',')[1]);
+    else
+        byteString = unescape(dataURI.split(',')[1]);
+
+    // separate out the mime component
+    var mimeString = dataURI.split(',')[0].split(':')[1].split(';')[0];
+
+    // write the bytes of the string to a typed array
+    var ia = new Uint8Array(byteString.length);
+    for (var i = 0; i < byteString.length; i++) {
+        ia[i] = byteString.charCodeAt(i);
+    }
+
+    // return new Blob([ia], {type:mimeString});
+    return ia;
+
+}
+
+            var img = document.getElementById('cat'),
+                // canvas = document.createElement('canvas'),
+                canvas = document.getElementById('canvas'),
+
+                ctx = canvas.getContext('2d');
+            var imgBlob;
+            img.onload = function(){
+                canvas.width=img.width;
+                canvas.height=img.height;
+                ctx.drawImage(img,0,0,img.width,img.height);
+                document.body.appendChild(canvas);
+                // canvas.toBlob(function(blob){
+                //     console.log(blob);
+                //     imgBlob=blob;
+                // }, "image/jpeg", 0.8);
+                var dataURL = canvas.toDataURL();
+                imgBlob=dataURItoBlob(dataURL);
+            };
+
+        </script>
+    <script src="build/docxtemplater.js"></script>
+    <script src="build/docxtemplater-image-module-latest.min.js"></script>
     <script src="vendor/FileSaver.min.js"></script>
     <script src="vendor/jszip-utils.js"></script>
     <!--
@@ -12,18 +60,44 @@
     var loadFile=function(url,callback){
         JSZipUtils.getBinaryContent(url,callback);
     }
-    loadFile("examples/tagExample.docx",function(err,content){
+    var opts = {}
+opts.centered = false;
+opts.getImage=function(tagValue, tagName) {
+    console.log('getImage',tagValue, tagName)
+   // return fs.readFileSync(tagValue,'binary');
+   console.log('imgBlob',imgBlob)
+   return imgBlob;
+}
+
+opts.getSize=function(img,tagValue, tagName) {
+    return [150,150];
+}
+
+var imageModule=new ImageModule(opts);
+
+
+
+
+    function save(){
+        // alert("save");
+        loadFile("examples/tagExample.docx",function(err,content){
         if (err) { throw err};
-        doc=new Docxgen(content);
+        doc=new Docxgen(content).attachModule(imageModule);
         doc.setData( {"first_name":"Hipp",
             "last_name":"Edgar",
             "phone":"0652455478",
-            "description":"New Website"
+            "description":"New Website",
+            "myImage":'sampleImage.png'
             }
         ) //set the templateVariables
         doc.render() //apply them (replace all occurences of {first_name} by Hipp, ...)
         out=doc.getZip().generate({type:"blob"}) //Output the document using Data-URI
         saveAs(out,"output.docx")
-    })
+        })
+    }
+
+
     </script>
+
+    </body>
 </html>
